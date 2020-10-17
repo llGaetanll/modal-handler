@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, cloneElement } from "react";
 import MuiAlert from "@material-ui/lab/Alert";
 import {
   Box,
@@ -31,26 +31,9 @@ const useStyles = makeStyles(theme => ({
   }
 }));
 
-export const AlertList = ({ alerts, remAlert }) => {
-  const classes = useStyles();
-
-  // this list contains all currently visible alerts.
-  // it's updated whenever the context's alert change
-  const alertList = Object.keys(alerts).map(key => ({
-    ...alerts[key],
-    alertKey: key
-  }));
-
-  return (
-    <Box className={classes.alertList}>
-      {alertList.map(alert => (
-        <Alert key={alert.alertKey} remAlert={remAlert} {...alert} />
-      ))}
-    </Box>
-  );
-};
-
-export const Alert = ({ alertKey: key, msg, severity, remAlert, params }) => {
+// Alert Wrapper. Note that this is not exported since all Alerts are displayed in the
+// `AlertList` component.
+const Alert = ({ alertKey: key, msg, severity, remAlert, params }) => {
   const classes = useStyles();
   const [open, setOpen] = useState(true);
 
@@ -81,7 +64,28 @@ export const Alert = ({ alertKey: key, msg, severity, remAlert, params }) => {
   );
 };
 
-export const Dialog = ({ children: Children, onClose, remDialog }) => {
+// AlertList component. handles displaying any and all alerts in a list format
+export const AlertList = ({ alerts, remAlert }) => {
+  const classes = useStyles();
+
+  // this list contains all currently visible alerts.
+  // it's updated whenever the context's alert change
+  const alertList = Object.keys(alerts).map(key => ({
+    ...alerts[key],
+    alertKey: key
+  }));
+
+  return (
+    <Box className={classes.alertList}>
+      {alertList.map(alert => (
+        <Alert key={alert.alertKey} remAlert={remAlert} {...alert} />
+      ))}
+    </Box>
+  );
+};
+
+// Dialog Wrapper component
+export const Dialog = ({ children, onClose, remDialog }) => {
   const [open, setOpen] = useState(false);
 
   // if children are defined, display the element
@@ -105,12 +109,14 @@ export const Dialog = ({ children: Children, onClose, remDialog }) => {
       onClose={() => handleClose(null)}
       onExited={handleExited}
     >
-      {<Children onClose={handleClose} />}
+      {/* here no need for `cloneElement` since Dialogs don't use refs */}
+      {<children.type {...children.props} onClose={handleClose} />}
     </MuiDialog>
   );
 };
 
-export const Menu = ({ anchor, children: Children, onClose, remMenu }) => {
+// Menu Wrapper component
+export const Menu = ({ anchor, children, onClose, remMenu }) => {
   const [open, setOpen] = useState(false);
 
   // if the anchor is defined, display the element
@@ -135,7 +141,11 @@ export const Menu = ({ anchor, children: Children, onClose, remMenu }) => {
       onClose={() => handleClose(null)}
       onExited={handleExited}
     >
-      {<Children onClose={handleClose} />}
+      {/* 
+        use `cloneElements` on children to pass down any refs if provided.
+        The `onClose` prop is also passed to any child component.
+      */}
+      {cloneElement(children, { onClose: handleClose })}
     </MuiMenu>
   );
 };
